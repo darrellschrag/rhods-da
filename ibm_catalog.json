@@ -3,7 +3,7 @@
         {
             "name": "roks-rhods",
             "label": "ROKS Red Hat OpenShift Data Science",
-            "product_kind": "module",
+            "product_kind": "solution",
             "tags": [
                 "ocp",
                 "ROKS",
