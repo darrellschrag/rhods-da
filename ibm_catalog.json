@@ -22,7 +22,7 @@
             "short_description": "Deploys the Red Hat OpenShift Data Science operator and its pre-requisites into an existing ROKS cluster with GPU worker nodes",
             "long_description": "For a given ROKS cluster with at least 1 GPU worker node, deploy into it the Red Hat OpenShift Data Science operator and all of its pre-requisites including the Node Feature Discovery operator and the GPU operator.",
             "offering_docs_url": "https://github.com/darrellschrag/rhods-da/blob/main/README.md",
-            "offering_icon_url": "https://github.com/darrellschrag/rhods-da/blob/main/docs/rhods.png",
+            "offering_icon_url": "https://raw.githubusercontent.com/terraform-ibm-modules/documentation/main/icons/RH_OpenShift.svg",
             "provider_name": "IBM",
             "flavors": [
                 {
@@ -33,7 +33,19 @@
                           "name": "Apache License 2.0",
                           "url": "https://raw.githubusercontent.com/darrellschrag/rhods-da/main/LICENSE"
                         }
-                      ]
+                    ],
+                    "architecture": {
+                        "diagrams": [
+                            {
+                                "diagram": {
+                                    "caption": "Resulting Operator Installs",
+                                    "url": "https://github.com/darrellschrag/rhods-da/blob/main/docs/installed_operators.svg",
+                                    "type": "image/svg+xml"
+                                },
+                                "description": "Your list of installed Operators once this has been applied"
+                            }
+                        ]
+                    }
                 }
             ]
         }
