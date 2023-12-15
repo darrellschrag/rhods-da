@@ -33,19 +33,7 @@
                           "name": "Apache License 2.0",
                           "url": "https://raw.githubusercontent.com/darrellschrag/rhods-da/main/LICENSE"
                         }
-                      ],
-                    "architecture": {
-                        "diagrams": [
-                            {
-                                "diagram": {
-                                    "caption": "Resulting Operator Installs",
-                                    "url": "https://github.com/darrellschrag/rhods-da/blob/main/docs/installed_operators.png",
-                                    "type": "image/x-png"
-                                },
-                                "description": "Your list of installed Operators once this has been applied"
-                            }
-                        ]
-                    }
+                      ]
                 }
             ]
         }
