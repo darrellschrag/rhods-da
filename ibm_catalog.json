@@ -40,7 +40,7 @@
                                 "diagram": {
                                     "caption": "Resulting Operator Installs",
                                     "url": "https://github.com/darrellschrag/rhods-da/blob/main/docs/installed_operators.png",
-                                    "type": "image/png"
+                                    "type": "image/x-png"
                                 },
                                 "description": "Your list of installed Operators once this has been applied"
                             }
