@@ -1,0 +1,62 @@
+{
+    "products": [
+        {
+            "name": "roks-rhods",
+            "label": "ROKS Red Hat OpenShift Data Science",
+            "product_kind": "module",
+            "tags": [
+                "ocp",
+                "ROKS",
+                "data_science",
+                "red_hat",
+                "target_terraform",
+                "terraform",
+                "module"
+            ],
+            "keywords": [
+                "terraform",
+                "data_science",
+                "red_hat",
+                "ocp"
+            ],
+            "short_description": "Deploys the Red Hat OpenShift Data Science operator and its pre-requisites into an existing ROKS cluster with GPU worker nodes",
+            "long_description": "For a given ROKS cluster with at least 1 GPU worker node, deploy into it the Red Hat OpenShift Data Science operator and all of its pre-requisites including the Node Feature Discovery operator and the GPU operator.",
+            "offering_docs_url": "https://github.ibm.com/drschrag/rhods_da/blob/main/README.md",
+            "offering_icon_url": "https://github.ibm.com/drschrag/rhods_da/blob/main/docs/rhods.png",
+            "provider_name": "IBM",
+            "features": [
+                {
+                    "title": "Create a service mesh control plane",
+                    "description": "Create a service mesh control plane."
+                },
+                {
+                    "title": "Create a service mesh operator",
+                    "description": "Create a service mesh operator."
+                },
+                {
+                    "title": "Create a kubernetes controlplane namespace",
+                    "description": "Create a kubernetes controlplane namespace."
+                }
+            ],
+            "flavors": [
+                {
+                    "label": "Basic",
+                    "name": "basic",
+                    "working_directory": "examples/basic",
+                    "architecture": {
+                        "diagrams": [
+                            {
+                                "diagram": {
+                                    "caption": "Basic example",
+                                    "url": "https://raw.githubusercontent.com/terraform-ibm-modules/documentation/main/icons/ModuleExampleDiagram.svg",
+                                    "type": "image/svg+xml"
+                                },
+                                "description": "A very basic example to install service mesh which also deploys a sample app to a namespaces enrolled in the mesh"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
