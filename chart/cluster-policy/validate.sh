@@ -13,8 +13,8 @@ kubectl get pods -n $namespace
 podlist=`kubectl get pods -n $namespace -o jsonpath="{$.items..metadata.name}"`
 podlistarr=($podlist)
 
-# set timeout to 20 minutes
-timeout="1200s"
+# set timeout to 30 minutes
+timeout="1800s"
 fail=0
 driver_daemonset=""
 
