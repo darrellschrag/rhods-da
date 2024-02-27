@@ -1,4 +1,55 @@
+########################################################################################################################
+# Resource Group
+########################################################################################################################
+
+module "resource_group" {
+  count                        = var.create-cluster ? 1 : 0
+  source                       = "terraform-ibm-modules/resource-group/ibm"
+  version                      = "1.1.4"
+  # if an existing resource group is not set (null) create a new one using prefix
+  resource_group_name          = var.resource-group == null ? "${var.prefix}-resource-group" : null
+  existing_resource_group_name = var.resource-group
+}
+
+########################################################################################################################
+# VPC + Subnet + Public Gateway
+#
+# NOTE: This is a very simple VPC with single subnet in a single zone with a public gateway enabled, that will allow
+# all traffic ingress/egress by default.
+# For production use cases this would need to be enhanced by adding more subnets and zones for resiliency, and
+# ACLs/Security Groups for network security.
+########################################################################################################################
+
+resource "ibm_is_vpc" "vpc" {
+  count                     = var.create-cluster ? 1 : 0
+  name                      = "${var.prefix}-vpc"
+  resource_group            = module.resource_group[0].resource_group_id
+  address_prefix_management = "auto"
+}
+
+resource "ibm_is_public_gateway" "gateway" {
+  count          = var.create-cluster ? 1 : 0
+  name           = "${var.prefix}-gateway-1"
+  vpc            = ibm_is_vpc.vpc[0].id
+  resource_group = module.resource_group[0].resource_group_id
+  zone           = "${var.region}-1"
+}
+
+resource "ibm_is_subnet" "subnet_zone_1" {
+  count                    = var.create-cluster ? 1 : 0
+  name                     = "${var.prefix}-subnet-1"
+  vpc                      = ibm_is_vpc.vpc[0].id
+  resource_group           = module.resource_group[0].resource_group_id
+  zone                     = "${var.region}-1"
+  total_ipv4_address_count = 256
+  public_gateway           = ibm_is_public_gateway.gateway[0].id
+}
+
+
 locals {
+
+  kubeconfig = data.ibm_container_cluster_config.cluster_config.config_file_path
+
 ###############################
 # Pipelines operator locals
 ###############################
@@ -24,6 +75,8 @@ locals {
   chart_path_data_science_cluster = "data-science-cluster"
   # data science cluster helm release name
   helm_release_name_data_science_cluster = local.chart_path_data_science_cluster
+  # data science cluster namespace
+  rhods_cluster_namespace = "redhat-ods-applications"
 
 ###############################
 # NFD operator locals
@@ -56,15 +109,37 @@ locals {
   helm_release_name_cluster_policy = local.chart_path_cluster_policy
 }
 
+data "ibm_resource_instance" "cos_instance" {
+  count             = var.create-cluster ? 1 : 0
+  name              = var.cos-instance
+  service           = "cloud-object-storage"
+}
+
+
+resource "ibm_container_vpc_cluster" "cluster" {
+  count              = var.create-cluster ? 1 : 0
+  name               = var.cluster-id
+  vpc_id             = ibm_is_vpc.vpc[0].id
+  flavor             = var.machine-type
+  worker_count       = var.number-gpu-nodes == null ? 2 : var.number-gpu-nodes < 2 ? 2 : var.number-gpu-nodes
+  resource_group_id  = module.resource_group[0].resource_group_id
+  cos_instance_crn   = data.ibm_resource_instance.cos_instance[0].id
+  kube_version       = "${var.ocp-version}_openshift"
+  update_all_workers = true
+  zones {
+    subnet_id = ibm_is_subnet.subnet_zone_1[0].id
+    name      = "${var.region}-1"
+  }
+}
 
 ##############################################################################
 # Retrieve information about all the Kubernetes configuration files and
 # certificates to access the cluster in order to run kubectl / oc commands
 ##############################################################################
 data "ibm_container_cluster_config" "cluster_config" {
-  cluster_name_id = var.cluster_id
+  cluster_name_id = var.create-cluster ? ibm_container_vpc_cluster.cluster[0].id : var.cluster-id
   config_dir      = "${path.module}/kubeconfig"                                                             # See https://github.ibm.com/GoldenEye/issues/issues/552
-  endpoint_type   = var.cluster_config_endpoint_type != "default" ? var.cluster_config_endpoint_type : null # null represents default
+  endpoint_type   = var.cluster-config-endpoint-type != "default" ? var.cluster-config-endpoint-type : null # null represents default
   admin           = true
 }
 
@@ -73,7 +148,7 @@ data "ibm_container_cluster_config" "cluster_config" {
 ##############################################################################
 resource "helm_release" "pipelines_operator" {
   depends_on = [data.ibm_container_cluster_config.cluster_config]
-  count      = var.deploy_pipeline_operator == true ? 1 : 0
+  count      = var.deploy-pipeline-operator == true ? 1 : 0
 
   name              = local.helm_release_name_pipeline_operator
   chart             = "${path.module}/chart/${local.chart_path_pipeline_operator}"
@@ -102,7 +177,7 @@ resource "helm_release" "pipelines_operator" {
     command     = "${path.module}/scripts/approve-install-plan.sh ${local.subscription_name_pipeline_operator} ${local.pipeline_operator_namespace} 'wait'"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
@@ -141,7 +216,7 @@ resource "helm_release" "nfd_operator" {
     command     = "${path.module}/scripts/approve-install-plan.sh ${local.subscription_name_nfd_operator} ${local.nfd_operator_namespace} 'wait'"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
@@ -178,7 +253,7 @@ resource "helm_release" "nfd_instance" {
     command     = "${path.module}/chart/${local.chart_path_nfd_instance}/validate.sh ${var.number-gpu-nodes}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
@@ -227,7 +302,7 @@ resource "helm_release" "gpu_operator" {
     command     = "${path.module}/scripts/approve-install-plan.sh ${local.subscription_name_gpu_operator} ${local.gpu_operator_namespace} 'approve'"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
@@ -252,7 +327,7 @@ resource "helm_release" "cluster-policy" {
     command     = "${path.module}/chart/${local.chart_path_cluster_policy}/validate.sh ${local.gpu_operator_namespace}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
@@ -292,7 +367,7 @@ resource "helm_release" "rhods_operator" {
     command     = "${path.module}/scripts/approve-install-plan.sh ${local.subscription_name_rhods_operator} ${local.rhods_operator_namespace} 'wait'"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
@@ -314,10 +389,10 @@ resource "helm_release" "data_science_cluster" {
   disable_openapi_validation = false
 
   provisioner "local-exec" {
-    command     = "${path.module}/chart/${local.chart_path_data_science_cluster}/validate.sh"
+    command     = "${path.module}/chart/${local.chart_path_data_science_cluster}/validate.sh ${local.rhods_cluster_namespace}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
-      KUBECONFIG = data.ibm_container_cluster_config.cluster_config.config_file_path
+      KUBECONFIG = local.kubeconfig
     }
   }
 }
