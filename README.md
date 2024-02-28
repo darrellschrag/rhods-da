@@ -58,7 +58,7 @@ You need the following permissions to run this module.
 | region | IBM Cloud region | `string` | none | yes |
 | nvidia-gpu-channel | The version of the NVIDIA GPU operator to install. Retrieve by: `oc get packagemanifest gpu-operator-certified -n openshift-marketplace -o jsonpath='{.status.defaultChannel}'` | `string` | none | yes |
 | nvidia-gpu-startingcsv | Starting CSV value corresponding to the channel. Retrieve by inserting the gpu channel value into this command: `oc get packagemanifests/gpu-operator-certified -n openshift-marketplace -o json &#124; jq -r '.status.channels[] &#124; select(.name == <nvidia_gpu_channel>`) &#124; .currentCSV' | `string` | none | yes |
-| nfd-instance-image-version | The version of the Node Feature Discovery instance image. Should be the OpenShift version you are using. Example: v4.13 | `string` | none | yes |
+| nfd-instance-image-version | The version of the Node Feature Discovery instance image. Should be the OpenShift major.minor version you are using with a `v` in front. Example: v4.13 | `string` | none | yes |
 | number-gpu-nodes | The number of GPU nodes expected to be found in the cluster. The number of nodes created if creating a cluster. | `number` | none | yes |
 
 ### The following inputs are only required if you want terraform to create a cluster. All below values must be provided if you want terraform to create a cluster and there is no default value
@@ -78,16 +78,18 @@ You need the following permissions to run this module.
 
 ```
 cluster-id = "torgpu"
-deploy-pipeline-operator = false
+deploy-pipeline-operator = true
 region = "ca-tor"
 nvidia-gpu-channel = "v23.9"
 nvidia-gpu-startingcsv = "gpu-operator-certified.v23.9.1"
-nfd-instance-image-version = "v4.14"
+nfd-instance-image-version = "v4.14"     #should be the same major.minor of the OCP cluster
 number-gpu-nodes = 2
-ocp-version = "4.14.8"
+# variables when creating a new cluster
 create-cluster = true
+ocp-version = "4.14.8"
 machine-type = "gx3.16x80.l4"
 cos-instance = "Cloud Object Storage-drs"
+prefix = "gputest"
 ```
 
 

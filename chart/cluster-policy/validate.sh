@@ -1,9 +1,10 @@
 namespace=$1
+gpu_count=$2
 
 # wait to let the pods get created
-echo "Waiting for all pods to get launched"
+echo "Waiting for nvidia-driver-deamonset pods to start"
 counter=0
-until [[ $(kubectl get pods -n $namespace --output name | wc -l) -gt 8 ]]
+until [[ $(kubectl get pods -n $namespace --output name | grep nvidia-driver-daemonset | wc -l) -eq $gpu_count ]]
 do
     kubectl get pods -n $namespace
     ((counter++))
@@ -11,12 +12,16 @@ do
 
     if [[ counter -gt 60 ]]
     then
-        echo "Pods have not started!"
+        echo "nvidia-driver-daemonset pods have not started!"
         echo "current state of all pods in '$namespace' namespace"
         kubectl get pods -n $namespace
         exit 1
     fi
 done
+
+# wait for all pods to at least get started
+echo "waiting for 5 minutes to let pods startup"
+sleep 300
 
 # get the list of pods in the nvidia-gpu-operator namespace
 echo "current state of all pods in '$namespace' namespace"

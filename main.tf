@@ -322,14 +322,6 @@ resource "helm_release" "cluster-policy" {
   wait              = true
 
   disable_openapi_validation = false
-
-  provisioner "local-exec" {
-    command     = "${path.module}/chart/${local.chart_path_cluster_policy}/validate.sh ${local.gpu_operator_namespace}"
-    interpreter = ["/bin/bash", "-c"]
-    environment = {
-      KUBECONFIG = local.kubeconfig
-    }
-  }
 }
 
 
@@ -387,9 +379,16 @@ resource "helm_release" "data_science_cluster" {
   wait              = true
 
   disable_openapi_validation = false
+}
 
-  provisioner "local-exec" {
-    command     = "${path.module}/chart/${local.chart_path_data_science_cluster}/validate.sh ${local.rhods_cluster_namespace}"
+##############################################################################
+# Do some post install pod checking
+##############################################################################
+resource "null_resource" "pod_check" {
+   depends_on = [helm_release.data_science_cluster]
+
+   provisioner "local-exec" {
+    command     = "${path.module}/scripts/pod_check.sh ${local.gpu_operator_namespace} ${var.number-gpu-nodes} ${local.rhods_cluster_namespace}"
     interpreter = ["/bin/bash", "-c"]
     environment = {
       KUBECONFIG = local.kubeconfig
