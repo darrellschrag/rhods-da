@@ -15,10 +15,6 @@ variable "cluster-config-endpoint-type" {
   type        = string
   default     = "default"
   nullable    = false # use default if null is passed in
-  validation {
-    error_message = "Invalid Endpoint Type! Valid values are 'default', 'private', 'vpe', or 'link'"
-    condition     = contains(["default", "private", "vpe", "link"], var.cluster-config-endpoint-type)
-  }
 }
 
 variable "deploy-pipeline-operator" {
@@ -66,12 +62,8 @@ variable "ocp-version" {
 
 variable "prefix" {
   type        = string
-  description = "Prefix for name of all resource created by this example"
+  description = "Prefix for name of all resource created by this example. Only letters, numbers, and - character."
   default     = "base-ocp-std"
-  validation {
-    error_message = "Prefix must begin and end with a letter and contain only letters, numbers, and - characters."
-    condition     = can(regex("^([A-z]|[a-z][-a-z0-9]*[a-z0-9])$", var.prefix))
-  }
 }
 
 variable "create-cluster" {
