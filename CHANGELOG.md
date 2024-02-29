@@ -15,3 +15,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
    * Removed the validation of the GPU operator and RHODS operator pods and moved a summary of the pod status to the end. This is due to the fact that these pods sometimes take awhile to finish and there is no good way to wait for them as well as they may change.
 ### Fixed
+
+## 1.1 - 2024-02-28
+### Added
+### Changed
+   * Changed name to OpenShift AI
+### Fixed
