@@ -5,7 +5,6 @@ eval "$(jq -r '@sh "OCP_VERSION=\(.ocp_version)"')"
 
 # get the OpenShift version to install
 VERSION=$(ibmcloud ks versions --show-version OpenShift | grep "$OCP_VERSION")
-echo "Installing $VERSION of OpenShift"
 
 # Safely produce a JSON object containing the result value.
 # jq will ensure that the value is properly quoted
