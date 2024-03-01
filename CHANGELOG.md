@@ -27,3 +27,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
    * Reduced the number of input variables
 ### Fixed
+
+## 1.1.2 - 2024-03-01
+### Added
+### Changed
+### Fixed
+   * Fixed some typos

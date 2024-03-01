@@ -1,6 +1,13 @@
-The goal of this Deployable Architecture is to quickly create an environment to get hands on with Red Hat OpenShift AI using a ROKS cluster in IBM Cloud.
+The goal of this Deployable Architecture is to quickly create an environment to get hands on with Red Hat OpenShift AI using a ROKS cluster in IBM Cloud. The DA itself will create a simple 1 zone cluster for the user if desired, or you can pre-create the cluster. The DA will then install the OpenShift AI stack.
 
-This Terraform script will deploy the Operators necessary for the Red Hat OpenShift AI functionality. The Terraform script will deploy the following Operators and their corresponding components.
+If the user chooses to create a cluster, the following items will get created:
+1. A resource group named ai-resource-group
+2. A subnet named roks-gpu-subnet-1 in zone 1 of the chosen region in the resource group
+3. A public gateway named roks-gpu-gateway-1 attached to the subnet in the resource group
+4. A vpc named roks-gpu-vpc containing the above subnet and public gateway in the resource group
+5. A single zone ROKS cluster in the created subnet and vpc with the user specified number of workers in the resource group. The cluster does not have logging, monitoring, secrets manager, or encryption attached at all. It will be publicly accessible.
+
+This rest of the Terraform script will deploy the Operators necessary for the Red Hat OpenShift AI functionality to the new or existing ROKS cluster. The following Operators and their corresponding components are deployed.
 
 1. Red Hat Pipelines Operator - Incorporate Tekton pipelines into your AI work
 2. Red Hat Node Discovery Feature Operator
@@ -11,7 +18,7 @@ This Terraform script will deploy the Operators necessary for the Red Hat OpenSh
     - OpenShift AI instance - this instance installs the components
 
 ## Required Inputs
-This Terraform script works in two ways. You can pre-create your cluster and then use this Terraform to install the opertors into your existing cluster. Or you can have the Terraform create a simple single zone cluster for you first and then it will apply the operators to that cluster.
+This Terraform script works in two ways. You can pre-create your cluster and then use this Terraform to install the Opertors into your existing cluster. Or you can have the Terraform create a simple single zone cluster for you first and then it will apply the operators to that cluster.
 
 ## Required IAM access policies
 You need the following permissions to run this module.
@@ -45,7 +52,7 @@ You need the following permissions to run this module.
 | region | IBM Cloud region. Use 'ibmcloud regions' to get the list | `string` | none | yes |
 | number-gpu-nodes | The number of GPU nodes expected to be found or to create in the cluster | `number` | none | yes |
 
-### The following inputs are only required if you want terraform to create a cluster. All below values must be provided if you want terraform to create a cluster and there is no default value
+### The following inputs are only required if you want Terraform to create a cluster. All below values must be provided if you want Terraform to create a cluster.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
