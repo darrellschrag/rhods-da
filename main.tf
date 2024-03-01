@@ -18,14 +18,14 @@ resource "ibm_resource_group" "res_group" {
 
 resource "ibm_is_vpc" "vpc" {
   count                     = var.create-cluster ? 1 : 0
-  name                      = "${var.prefix}-vpc"
+  name                      = "roks-gpu-vpc"
   resource_group            = ibm_resource_group.res_group[0].id
   address_prefix_management = "auto"
 }
 
 resource "ibm_is_public_gateway" "gateway" {
   count          = var.create-cluster ? 1 : 0
-  name           = "${var.prefix}-gateway-1"
+  name           = "roks-gpu-gateway-1"
   vpc            = ibm_is_vpc.vpc[0].id
   resource_group = ibm_resource_group.res_group[0].id
   zone           = "${var.region}-1"
@@ -33,7 +33,7 @@ resource "ibm_is_public_gateway" "gateway" {
 
 resource "ibm_is_subnet" "subnet_zone_1" {
   count                    = var.create-cluster ? 1 : 0
-  name                     = "${var.prefix}-subnet-1"
+  name                     = "roks-gpu-subnet-1"
   vpc                      = ibm_is_vpc.vpc[0].id
   resource_group           = ibm_resource_group.res_group[0].id
   zone                     = "${var.region}-1"
