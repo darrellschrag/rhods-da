@@ -2,13 +2,9 @@
 # Resource Group
 ########################################################################################################################
 
-module "resource_group" {
-  count                        = var.create-cluster ? 1 : 0
-  source                       = "terraform-ibm-modules/resource-group/ibm"
-  version                      = "1.1.4"
-  # if an existing resource group is not set (null) create a new one using prefix
-  resource_group_name          = var.resource-group == null ? "${var.prefix}-resource-group" : null
-  existing_resource_group_name = var.resource-group
+resource "ibm_resource_group" "res_group" {
+  count = var.create-cluster ? 1 : 0
+  name  = "ai-resource-group"
 }
 
 ########################################################################################################################
@@ -23,7 +19,7 @@ module "resource_group" {
 resource "ibm_is_vpc" "vpc" {
   count                     = var.create-cluster ? 1 : 0
   name                      = "${var.prefix}-vpc"
-  resource_group            = module.resource_group[0].resource_group_id
+  resource_group            = ibm_resource_group.res_group[0].id
   address_prefix_management = "auto"
 }
 
@@ -31,7 +27,7 @@ resource "ibm_is_public_gateway" "gateway" {
   count          = var.create-cluster ? 1 : 0
   name           = "${var.prefix}-gateway-1"
   vpc            = ibm_is_vpc.vpc[0].id
-  resource_group = module.resource_group[0].resource_group_id
+  resource_group = ibm_resource_group.res_group[0].id
   zone           = "${var.region}-1"
 }
 
@@ -39,7 +35,7 @@ resource "ibm_is_subnet" "subnet_zone_1" {
   count                    = var.create-cluster ? 1 : 0
   name                     = "${var.prefix}-subnet-1"
   vpc                      = ibm_is_vpc.vpc[0].id
-  resource_group           = module.resource_group[0].resource_group_id
+  resource_group           = ibm_resource_group.res_group[0].id
   zone                     = "${var.region}-1"
   total_ipv4_address_count = 256
   public_gateway           = ibm_is_public_gateway.gateway[0].id
@@ -115,16 +111,30 @@ data "ibm_resource_instance" "cos_instance" {
   service           = "cloud-object-storage"
 }
 
+##############################################################################
+# Retrieve the current ocp version
+##############################################################################
+data "external" "ocp_data" {
+  program = ["bash", "${path.module}/scripts/get-openshift-data.sh"]
 
+  query = {
+    ocp_version = var.ocp-version
+  }
+}
+
+##############################################################################
+# Create a cluster
+##############################################################################
 resource "ibm_container_vpc_cluster" "cluster" {
+  depends_on         = [data.external.ocp_data]
   count              = var.create-cluster ? 1 : 0
-  name               = var.cluster-id
+  name               = var.cluster-name
   vpc_id             = ibm_is_vpc.vpc[0].id
   flavor             = var.machine-type
   worker_count       = var.number-gpu-nodes == null ? 2 : var.number-gpu-nodes < 2 ? 2 : var.number-gpu-nodes
-  resource_group_id  = module.resource_group[0].resource_group_id
+  resource_group_id  = ibm_resource_group.res_group[0].id
   cos_instance_crn   = data.ibm_resource_instance.cos_instance[0].id
-  kube_version       = "${var.ocp-version}_openshift"
+  kube_version       = data.external.ocp_data.result.ocp_version
   update_all_workers = true
   zones {
     subnet_id = ibm_is_subnet.subnet_zone_1[0].id
@@ -137,9 +147,9 @@ resource "ibm_container_vpc_cluster" "cluster" {
 # certificates to access the cluster in order to run kubectl / oc commands
 ##############################################################################
 data "ibm_container_cluster_config" "cluster_config" {
-  cluster_name_id = var.create-cluster ? ibm_container_vpc_cluster.cluster[0].id : var.cluster-id
-  config_dir      = "${path.module}/kubeconfig"                                                             # See https://github.ibm.com/GoldenEye/issues/issues/552
-  endpoint_type   = var.cluster-config-endpoint-type != "default" ? var.cluster-config-endpoint-type : null # null represents default
+  cluster_name_id = var.create-cluster ? ibm_container_vpc_cluster.cluster[0].id : var.cluster-name
+  config_dir      = "${path.module}/kubeconfig"
+  endpoint_type   = null # null represents default
   admin           = true
 }
 
@@ -148,7 +158,6 @@ data "ibm_container_cluster_config" "cluster_config" {
 ##############################################################################
 resource "helm_release" "pipelines_operator" {
   depends_on = [data.ibm_container_cluster_config.cluster_config]
-  count      = var.deploy-pipeline-operator == true ? 1 : 0
 
   name              = local.helm_release_name_pipeline_operator
   chart             = "${path.module}/chart/${local.chart_path_pipeline_operator}"
@@ -246,7 +255,7 @@ resource "helm_release" "nfd_instance" {
   set {
     name  = "operators.instance_version"
     type  = "string"
-    value = var.nfd-instance-image-version
+    value = "v${var.ocp-version}"
   }
 
   provisioner "local-exec" {
@@ -259,11 +268,18 @@ resource "helm_release" "nfd_instance" {
 }
 
 ##############################################################################
+# Collect GPU operator data from the OperatorHub catalog
+##############################################################################
+data "external" "gpu_operator_data" {
+  program = ["bash", "${path.module}/scripts/get-gpu-operator-data.sh"]
+}
+
+##############################################################################
 # Install the NVIDIA GPU operator
 # (depends on the NFD operator)
 ##############################################################################
 resource "helm_release" "gpu_operator" {
-  depends_on = [data.ibm_container_cluster_config.cluster_config, helm_release.nfd_instance]
+  depends_on = [data.ibm_container_cluster_config.cluster_config, helm_release.nfd_instance, data.external.gpu_operator_data]
 
   name              = local.helm_release_name_gpu_operator
   chart             = "${path.module}/chart/${local.chart_path_gpu_operator}"
@@ -290,12 +306,12 @@ resource "helm_release" "gpu_operator" {
   set {
     name  = "operators.channel"
     type  = "string"
-    value = var.nvidia-gpu-channel
+    value = data.external.gpu_operator_data.result.channel
   }
   set {
     name  = "operators.startingCSV"
     type  = "string"
-    value = var.nvidia-gpu-startingcsv
+    value = data.external.gpu_operator_data.result.csv
   }
 
   provisioner "local-exec" {
