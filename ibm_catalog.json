@@ -40,8 +40,16 @@
                         "diagrams": [
                             {
                                 "diagram": {
+                                    "caption": "Resulting Architecture",
+                                    "url": "https://github.com/darrellschrag/rhods-da/raw/main/docs/RHOAI.svg",
+                                    "type": "image/svg+xml"
+                                },
+                                "description": "The resulting architecture of deploying this DA"
+                            },
+                            {
+                                "diagram": {
                                     "caption": "Resulting Operator Installs",
-                                    "url": "https://github.com/darrellschrag/rhods-da/blob/main/docs/installed_operators.svg",
+                                    "url": "https://github.com/darrellschrag/rhods-da/raw/main/docs/installed_operators.svg",
                                     "type": "image/svg+xml"
                                 },
                                 "description": "Your list of installed Operators once this has been applied"
